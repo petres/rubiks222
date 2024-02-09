@@ -1,4 +1,9 @@
 import numpy as np
+import pickle
+
+states_f = 'data/states.pickle'
+dtype = np.ubyte
+# dtype = None
 
 # Indices:
 #        ┌──┬──┐
@@ -56,8 +61,23 @@ def apply(pns):
         t = t[p]
     return t
     
-dtype = np.ubyte
-# dtype = None
+def saveStates(states, file = states_f):
+    with open(file, 'wb') as f:
+        pickle.dump(states, f, protocol=pickle.HIGHEST_PROTOCOL)
+    
+def loadStates(file = states_f):
+    with open(file, 'rb') as f:
+        return pickle.load(f)
+    
+def s2k(n):
+    return n.tobytes()
+    # return str(n.tolist())
+    
+    
+
+
+
+
 perms = {k: np.array(v, dtype=dtype) for k, v in perms.items()}
 
 
@@ -85,8 +105,31 @@ perms["U"] = apply(["CF", "R", "CF'"])
 perms["U2"] = apply(["U", "U"])
 perms["U'"] = apply(["U2", "U"])
 
-# print(state2nice(perms["U"]))
 
-def s2k(n):
-    return n.tobytes()
-    # return str(n.tolist())
+
+class Cube(object):
+    state = None
+    
+    def __init__(self, state = None):
+        if state is None:
+            state = np.array(list(range(24))).flatten()
+        self.state = state
+
+    def __str__(self):
+        return state2nice(self.state)
+
+    def apply(self, name):
+        if name not in perms:
+            raise Exception(f'`{name}`no valid permutation name provided!')
+        self.state = self.state[perms[name]]
+        return self
+
+    def rotate(self, d=None, r=1):
+        for i in range(r%4):
+            self.apply(f'C{d}')
+        return self
+
+    def turn(self, d=None, r=1):
+        for i in range(r%4):
+            self.apply(d)
+        return self
