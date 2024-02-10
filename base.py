@@ -1,9 +1,11 @@
 import numpy as np
 import pickle
 
+
 states_f = 'data/states.pickle'
 dtype = np.ubyte
 # dtype = None
+
 
 # Indices:
 #        ┌──┬──┐
@@ -73,7 +75,9 @@ def s2k(n):
     return n.tobytes()
     # return str(n.tolist())
     
-    
+def tr(t, b):
+    return [*b, *t, *[getInverse(e) for e in b]]
+
 
 
 
@@ -81,7 +85,7 @@ def s2k(n):
 perms = {k: np.array(v, dtype=dtype) for k, v in perms.items()}
 
 
-# AUGMENT ROTATIONS
+# ADD DERIVED ROTATIONS
 # full cube rotations
 perms["CR2"] = apply(["CR", "CR"])
 perms["CR'"] = apply(["CR2", "CR"])
@@ -90,6 +94,7 @@ perms["CU2"] = apply(["CU", "CU"])
 perms["CU'"] = apply(["CU2", "CU"])
 
 perms["CF'"] = apply(["CU", "CR", "CU'"])
+perms["CF'"] = apply(tr(["CR"], ["CU"]))
 perms["CF2"] = apply(["CF'", "CF'"])
 perms["CF"] = apply(["CF2", "CF'"])
 
@@ -107,12 +112,57 @@ perms["U'"] = apply(["U2", "U"])
 
 
 
+# COLOR MAPPING, FIXED CUBIE
+
+# bottom -> p 14 -> c 3G
+# left   -> p 18 -> c 4R
+# back   -> p 23 -> c 5W
+
+#    0B
+# 4R 2Y 1O 5W
+#    3G
+
+# c2i = {
+#     'B': 0, 'O': 1, 'Y': 2,
+#     'G': 3, 'R': 4, 'W': 5,
+# }
+
+colors = "BOYGRW"
+color_opp = {
+    "B": "G",
+    "O": "R",
+    "Y": "W",
+    "G": "B",
+    "R": "O",
+    "W": "Y",
+}
+
 class Cube(object):
     state = None
     
     def __init__(self, state = None):
         if state is None:
-            state = np.array(list(range(24))).flatten()
+            state = np.array([[i] * 4 for i in range(6)], dtype = dtype).flatten()
+        if isinstance(state, str):
+            state = state.replace(" ","")
+            if len(state) != 24:
+                raise Exception(f'Cube state string has length {len(state)} (!= 24)')
+            for c in colors:
+                if state.count(c) != 4:
+                    raise Exception(f'Color {c} occurs {state.count(c)} (!=4)')
+            
+            # map colors to fixed cubie
+            
+            # bottom -> p 14 -> c 3
+            # left   -> p 18 -> c 4
+            # back   -> p 23 -> c 5
+            
+            c2i = {
+                state[14]: 3, state[18]: 4, state[23]: 5,
+                color_opp[state[14]]: 0, color_opp[state[18]]: 1, color_opp[state[23]]: 2
+            }
+            state = np.array([c2i[c] for c in state], dtype = dtype)
+        
         self.state = state
 
     def __str__(self):
@@ -123,13 +173,22 @@ class Cube(object):
             raise Exception(f'`{name}`no valid permutation name provided!')
         self.state = self.state[perms[name]]
         return self
-
-    def rotate(self, d=None, r=1):
-        for i in range(r%4):
-            self.apply(f'C{d}')
-        return self
-
+    
     def turn(self, d=None, r=1):
-        for i in range(r%4):
-            self.apply(d)
+        ts = d.strip().split(' ')
+        for t in ts:
+            for i in range(r%4):
+                self.apply(t)
         return self
+    
+    def getPathInfo(self, states):
+        p = []
+        k = s2k(self.state)
+        while True:
+            s = states[k]
+            if s['dist'] == 0:
+                break
+            p.append(getInverse(s['pn']))
+
+            k = s['pre']
+        return p
