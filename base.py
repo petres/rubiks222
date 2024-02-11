@@ -2,7 +2,7 @@ import numpy as np
 import pickle
 
 
-states_f = 'data/states.pickle'
+graph_f = 'data/graph.pickle'
 dtype = np.ubyte
 # dtype = None
 
@@ -39,6 +39,8 @@ def state2nice(s):
         └──┴──┘
         '''
 
+base_color_assignment = np.array([[i] * 4 for i in range(6)], dtype = dtype).flatten()
+
 perms = {
       "I":  [ 0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23],
       "CR": [ 8,  9, 10, 11,  6,  4,  7,  5, 12, 13, 14, 15, 23, 22, 21, 20, 17, 19, 16, 18,  3,  2,  1,  0],
@@ -63,20 +65,22 @@ def apply(pns):
         t = t[p]
     return t
     
-def saveStates(states, file = states_f):
+def saveGraph(graph, file = graph_f):
     with open(file, 'wb') as f:
-        pickle.dump(states, f, protocol=pickle.HIGHEST_PROTOCOL)
+        pickle.dump(graph, f, protocol=pickle.HIGHEST_PROTOCOL)
     
-def loadStates(file = states_f):
+def loadGraph(file = graph_f):
     with open(file, 'rb') as f:
         return pickle.load(f)
     
 def s2k(n):
+    # TODO: REMOVE IDX 14, 18, 23
     return n.tobytes()
     # return str(n.tolist())
     
-def tr(t, b):
-    return [*b, *t, *[getInverse(e) for e in b]]
+    
+def tr(t, b = []):
+    return [*b, *t, *[getInverse(e) for e in reversed(b)]]
 
 
 
@@ -93,7 +97,7 @@ perms["CR'"] = apply(["CR2", "CR"])
 perms["CU2"] = apply(["CU", "CU"])
 perms["CU'"] = apply(["CU2", "CU"])
 
-perms["CF'"] = apply(["CU", "CR", "CU'"])
+# perms["CF'"] = apply(["CU", "CR", "CU'"])
 perms["CF'"] = apply(tr(["CR"], ["CU"]))
 perms["CF2"] = apply(["CF'", "CF'"])
 perms["CF"] = apply(["CF2", "CF'"])
@@ -102,11 +106,13 @@ perms["CF"] = apply(["CF2", "CF'"])
 perms["R2"] = apply(["R", "R"])
 perms["R'"] = apply(["R2", "R"])
 
-perms["F"] = apply(["CU'", "R", "CU"])
+# perms["F"] = apply(["CU'", "R", "CU"])
+perms["F"] = apply(tr(["R"], ["CU'"]))
 perms["F2"] = apply(["F", "F"])
 perms["F'"] = apply(["F2", "F"])
 
-perms["U"] = apply(["CF", "R", "CF'"])
+# perms["U"] = apply(["CF", "R", "CF'"])
+perms["U"] = apply(tr(["R"], ["CF"]))
 perms["U2"] = apply(["U", "U"])
 perms["U'"] = apply(["U2", "U"])
 
@@ -127,7 +133,6 @@ perms["U'"] = apply(["U2", "U"])
 #     'G': 3, 'R': 4, 'W': 5,
 # }
 
-colors = "BOYGRW"
 color_opp = {
     "B": "G",
     "O": "R",
@@ -147,7 +152,7 @@ class Cube(object):
             state = state.replace(" ","")
             if len(state) != 24:
                 raise Exception(f'Cube state string has length {len(state)} (!= 24)')
-            for c in colors:
+            for c in color_opp.keys():
                 if state.count(c) != 4:
                     raise Exception(f'Color {c} occurs {state.count(c)} (!=4)')
             
@@ -159,7 +164,9 @@ class Cube(object):
             
             c2i = {
                 state[14]: 3, state[18]: 4, state[23]: 5,
-                color_opp[state[14]]: 0, color_opp[state[18]]: 1, color_opp[state[23]]: 2
+                color_opp[state[14]]: 0, 
+                color_opp[state[18]]: 1, 
+                color_opp[state[23]]: 2
             }
             state = np.array([c2i[c] for c in state], dtype = dtype)
         
