@@ -8,7 +8,7 @@
 
 - `solve.ipynb`
   
-  Loads the solving graph and solves for given states
+  Loads the solving graph and solves instantly the cube.
   
 
 ## Solving
@@ -16,7 +16,7 @@
 After creating the solving graph with `graph.ipnb`, one can easily get the 
 shortest solving path with:
 
-```{python}
+```python
 from base import loadGraph, Cube
 
 graph = loadGraph()
