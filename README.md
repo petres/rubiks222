@@ -4,7 +4,7 @@
 ## Create Graph (`graph.ipynb`)
   
 Creates and saves the solving graph, given possible moves and color assignment. Replicates the numbers for count of states and required moves on [wikipedia](https://en.wikipedia.org/wiki/Pocket_Cube).
-Code is not optimized, need half a minute with a single 2.7GHz core. With default settings only the movements F*, R* and U* are allowed, so we have a fixed cube.
+Code is not optimized, need half a minute with a single 2.7GHz core. With default settings only the movements F*, R* and U* are allowed, so we have a fixed cubie (BDR).
 
 
 ## Solving (`solve.ipynb`)
