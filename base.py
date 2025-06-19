@@ -39,32 +39,45 @@ dtype = np.ubyte
 #     'G': 3, 'R': 4, 'W': 5,
 # }
 
-color_opp = {
-    "B": "G",
-    "O": "R",
-    "Y": "W",
-    "G": "B",
-    "R": "O",
-    "W": "Y",
+color_opp_base = [("B", "G"), ("O", "R"), ("Y", "W")]
+color_opp = {}
+for k, v in color_opp_base:
+    color_opp[v] = k
+    color_opp[k] = v
+
+
+c2ansi = {
+    'B': 44, 
+    'O': 45, 
+    'Y': 43,
+    'G': 42, 
+    'R': 41, 
+    'W': 47,
 }
 
-    
 
-def state2nice(s):
+def state2nice(bs):
+    # s = [str(e).center(3) for e in bs]
+    # s = [str(e).center(3) for e in bs]
+
+
+    # print("\033[47m \033[0m")
+    s = [f"\033[1;90m\033[{c2ansi[e]}m {e} \033[0m"  for e in bs]
+
     return f'''
-        ┌──┬──┐
-        │{ s[0]:2}│{ s[1]:2}│
-        ├──┼──┤
-        │{ s[2]:2}│{ s[3]:2}│
-  ┌──┬──┼──┼──┼──┬──┬──┬──┐
-  │{s[16]:2}│{s[17]:2}│{ s[8]:2}│{ s[9]:2}│{ s[4]:2}│{ s[5]:2}│{s[20]:2}│{s[21]:2}│
-  ├──┼──┼──┼──┼──┼──┼──┼──┤
-  │{s[18]:2}│{s[19]:2}│{s[10]:2}│{s[11]:2}│{ s[6]:2}│{ s[7]:2}│{s[22]:2}│{s[23]:2}│
-  └──┴──┼──┼──┼──┴──┴──┴──┘
-        │{s[12]:2}│{s[13]:2}│
-        ├──┼──┤
-        │{s[14]:2}│{s[15]:2}│
-        └──┴──┘
+          ┌───┬───┐
+          │{ s[0]}│{ s[1]}│
+          ├───┼───┤
+          │{ s[2]}│{ s[3]}│
+  ┌───┬───┼───┼───┼───┬───┬───┬───┐
+  │{s[16]}│{s[17]}│{ s[8]}│{ s[9]}│{ s[4]}│{ s[5]}│{s[20]}│{s[21]}│
+  ├───┼───┼───┼───┼───┼───┼───┼───┤
+  │{s[18]}│{s[19]}│{s[10]}│{s[11]}│{ s[6]}│{ s[7]}│{s[22]}│{s[23]}│
+  └───┴───┼───┼───┼───┴───┴───┴───┘
+          │{s[12]}│{s[13]}│
+          ├───┼───┤
+          │{s[14]}│{s[15]}│
+          └───┴───┘
         '''
 
 def color2state(colors):
@@ -87,7 +100,8 @@ def color2state(colors):
         color_opp[colors[18]]: 1, 
         color_opp[colors[23]]: 2
     }
-    return np.array([c2i[c] for c in colors], dtype = dtype)
+    i2c = {v: k for k, v in c2i.items()}
+    return (np.array([c2i[c] for c in colors], dtype = dtype), [i2c[i] for i in range(6)])
 
 
 base_color_assignment = np.array([[i] * 4 for i in range(6)], dtype = dtype).flatten()
@@ -178,13 +192,15 @@ class Cube(object):
     def __init__(self, state = None):
         if state is None:
             state = np.array([[i] * 4 for i in range(6)], dtype = dtype).flatten()
+            cm = ['B', 'O', 'Y', 'G', 'R', 'W']
         if isinstance(state, str):
-            state = color2state(state)
+            state, cm = color2state(state)
         
         self.state = state
+        self.cm = cm
 
     def __str__(self):
-        return state2nice(self.state)
+        return state2nice([self.cm[ci] for ci in self.state])
 
     def apply(self, name):
         if name not in perms:
